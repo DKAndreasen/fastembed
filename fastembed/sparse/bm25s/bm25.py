@@ -314,7 +314,7 @@ class Bm25(SparseTextEmbeddingBase):
         start = self.bm25s_engine.scores['indptr'][0]
         for end in self.bm25s_engine.scores['indptr'][1:]:
             bm25scores = self.bm25s_engine.scores['data'][start:end]
-            token_counter_ids = self.bm25s_engine.scores['indicies'][start:end]
+            token_counter_ids = self.bm25s_engine.scores['indices'][start:end]
             token_hash_ids = vectorized_mapping(token_counter_ids)
             embeddings.append(SparseEmbedding(indices=token_hash_ids, values=bm25scores))
 
