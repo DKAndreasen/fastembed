@@ -1,3 +1,3 @@
-from fastembed.sparse.bm25s.bm25 import bm25
+from fastembed.sparse.bm25s.bm25 import Bm25
 
-__all__ = ["bm25"]
+__all__ = ["Bm25"]
