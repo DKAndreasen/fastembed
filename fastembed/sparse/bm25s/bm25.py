@@ -122,6 +122,14 @@ class Bm25(SparseTextEmbeddingBase):
         avg_len (float, optional): The average length of the documents in the corpus. Defaults to 256.0.
         language (str): Specifies the language for the stemmer.
         disable_stemmer (bool): Disable the stemmer.
+        bm25s_stopwords : Union[str, List[str]], optional
+            The list of stopwords to remove from the text. If "english" or "en" is provided,
+            the function will use the default English stopwords
+        bm25s_stemmer : Callable, optional
+            The stemmer to use for stemming the tokens. It is recommended
+            to use the PyStemmer library for stemming, but you can also any callable that
+            takes a list of strings and returns a list of strings.
+
     Raises:
         ValueError: If the model_name is not in the format <org>/<model> e.g. BAAI/bge-base-en.
     """
@@ -138,21 +146,28 @@ class Bm25(SparseTextEmbeddingBase):
         language: str = "english",
         #token_max_length: int = 40,
         disable_stemmer: bool = False,
+        #possible kwargs from SparseTextEmbeddings "factory method"
+        bm25s_stopwords: str | List[str] = None,
+        bm25s_stemmer: Callable = None,
         **kwargs,
     ):
         super().__init__(model_name, cache_dir, **kwargs)
         # In super (SparseTextEmbeddingBase) the self._local_files_only is set false
 
-        try:
-            self.stopwords = bm25s_infer_stopwords(language)
+        if bm25s_stopwords is not None:
+            self.stopwords = bm25s_infer_stopwords(bm25s_stopwords)
             self._local_files_only = True
-        except ValueError:
-            logger.info(f"Stopwords for language {language} could not be inferred from bm25s. We try fastembeds own lists of stopwords")    
-            if language not in supported_languages:
-                raise ValueError(f"{language} language is not supported")
-            else:
-                self.language = language
-                self.stopwords = []
+        else:
+            try:
+                self.stopwords = bm25s_infer_stopwords(language)
+                self._local_files_only = True
+            except ValueError:
+                logger.info(f"Stopwords for language {language} could not be inferred from bm25s. We try fastembeds own lists of stopwords")    
+                if language not in supported_languages:
+                    raise ValueError(f"{language} language is not supported")
+                else:
+                    self.language = language
+                    self.stopwords = []
 
         model_description = self._get_model_description(model_name)
         self.cache_dir = define_cache_dir(cache_dir)
@@ -174,15 +189,18 @@ class Bm25(SparseTextEmbeddingBase):
         if disable_stemmer:
             self.stemmer = None
         else:
-            # The bm25s package is built expecting the PyStemmer implementation 
-            # of Snowball stemming project instead of the py_rust_stemmers 
-            # implementation used by fastembed, thus the bm25s classes expects 
-            # the stemmer class to have a stemWord method (instead of the 
-            # stem_word method of the py_rust_stemmers SnowballStemmer)
-            # The bm25s classes also accepts a direct stemming method, which we
-            # exploit here
-            stemmer = SnowballStemmer(language)
-            self.stemmer = lambda x: stemmer.stem_word(x)
+            if bm25s_stemmer is not None:
+                self.stemmer = bm25s_stemmer
+            else:
+                # The bm25s package is built expecting the PyStemmer implementation 
+                # of Snowball stemming project instead of the py_rust_stemmers 
+                # implementation used by fastembed, thus the bm25s classes expects 
+                # the stemmer class to have a stemWord method (instead of the 
+                # stem_word method of the py_rust_stemmers SnowballStemmer)
+                # The bm25s classes also accepts a direct stemming method, which we
+                # exploit here
+                stemmer = SnowballStemmer(language)
+                self.stemmer = stemmer.stem_word
             if not self.stopwords:
                 self.stopwords = self._load_stopwords(self._model_dir, self.language)
 
@@ -234,8 +252,9 @@ class Bm25(SparseTextEmbeddingBase):
                 is_small = True
 
         if parallel is None or is_small:
-            for batch in iter_batch(documents, batch_size):
-                yield from self.raw_embed(batch)
+            #for batch in iter_batch(documents, batch_size):
+            #    yield from self.raw_embed(batch)
+            return self.raw_embed(documents)
         else:
             if parallel == 0:
                 parallel = os.cpu_count()
@@ -274,6 +293,8 @@ class Bm25(SparseTextEmbeddingBase):
         Args:
             documents: Iterator of documents or single document to embed
             batch_size: Batch size for encoding -- higher values will use more memory, but be faster
+                Batch size will only take effect, when running parallel (in such case beware of the Notice under
+                parallel) 
             parallel:
                 If > 1, data-parallel encoding will be used, recommended for offline encoding of large datasets.
                 If 0, use all available cores.
@@ -299,7 +320,7 @@ class Bm25(SparseTextEmbeddingBase):
         self,
         documents: list[str],
     ) -> list[SparseEmbedding]:
-        bm25s_tokenized_docs = self.tokenizer.tokenize(documents, update_vocab=True, return_as="tuple")
+        bm25s_tokenized_docs = self.tokenizer.tokenize(documents, update_vocab=True)
         # Compute the BM25 scores
         self.bm25s_engine.index(bm25s_tokenized_docs)
         map_counter_id_to_hash_id = {}
