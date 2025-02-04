@@ -49,7 +49,8 @@ supported_bm25_models = [
         "model": "bm25s/lucene",
         "description":  "BM25 as sparse embeddings meant to be used with Qdrant using BM25s implementation of the Lucene method\n\n" +
                         "Computes the term frequency component of the BM25 score using Lucene variant (accurate)\n" +
-                        "Implementation: https://cs.uwaterloo.ca/~jimmylin/publications/Kamphuis_etal_ECIR2020_preprint.pdf",
+                        "Implementation: https://cs.uwaterloo.ca/~jimmylin/publications/Kamphuis_etal_ECIR2020_preprint.pdf\n\n" + 
+                        "The lucene method is the default method when using the bm25s library directly.",
         "license": "mit",
         "size_in_GB": 0.01,
         "sources": {
@@ -173,7 +174,15 @@ class Bm25(SparseTextEmbeddingBase):
         if disable_stemmer:
             self.stemmer = None
         else:
-            self.stemmer = SnowballStemmer(language)
+            # The bm25s package is built expecting the PyStemmer implementation 
+            # of Snowball stemming project instead of the py_rust_stemmers 
+            # implementation used by fastembed, thus the bm25s classes expects 
+            # the stemmer class to have a stemWord method (instead of the 
+            # stem_word method of the py_rust_stemmers SnowballStemmer)
+            # The bm25s classes also accepts a direct stemming method, which we
+            # exploit here
+            stemmer = SnowballStemmer(language)
+            self.stemmer = lambda x: stemmer.stem_word(x)
             if not self.stopwords:
                 self.stopwords = self._load_stopwords(self._model_dir, self.language)
 
