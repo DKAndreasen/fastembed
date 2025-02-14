@@ -8,6 +8,7 @@ import mmh3
 
 from bm25s.tokenization import Tokenizer as Bm25sTokenizer, _infer_stopwords as bm25s_infer_stopwords
 from bm25s import BM25 as BM25s
+import scipy.sparse as sp
 from numpy.ma.core import indices
 
 try:
@@ -254,7 +255,7 @@ class Bm25(SparseTextEmbeddingBase):
         if parallel is None or is_small:
             #for batch in iter_batch(documents, batch_size):
             #    yield from self.raw_embed(batch)
-            return self.raw_embed(documents)
+            yield from self.raw_embed(documents)
         else:
             if parallel == 0:
                 parallel = os.cpu_count()
@@ -320,7 +321,7 @@ class Bm25(SparseTextEmbeddingBase):
         self,
         documents: list[str],
     ) -> list[SparseEmbedding]:
-        bm25s_tokenized_docs = self.tokenizer.tokenize(documents, update_vocab=True)
+        bm25s_tokenized_docs = self.tokenizer.tokenize(documents, update_vocab=True, return_as="tuple")
         # Compute the BM25 scores
         self.bm25s_engine.index(bm25s_tokenized_docs)
         map_counter_id_to_hash_id = {}
@@ -328,18 +329,19 @@ class Bm25(SparseTextEmbeddingBase):
             token_id = self.compute_token_id(stemmed_token)
             map_counter_id_to_hash_id[current_id] = token_id
             
-        vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x))
+        vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x), otypes=(np.int32,))
 
         embeddings = []
         
-        start = self.bm25s_engine.scores['indptr'][0]
-        for end in self.bm25s_engine.scores['indptr'][1:]:
-            bm25scores = self.bm25s_engine.scores['data'][start:end]
-            token_counter_ids = self.bm25s_engine.scores['indices'][start:end]
-            token_hash_ids = vectorized_mapping(token_counter_ids)
+        # construct sparse array
+        sparse_array = sp.csc_array((self.bm25s_engine.scores['data'],self.bm25s_engine.scores['indices'],self.bm25s_engine.scores['indptr']))
+        # convert it to dictonary format
+        sparse_array = sp.dok_array(sparse_array)
+        for doc_id in range(sparse_array.shape[0]):
+            index, bm25scores = zip(*sparse_array[[doc_id], :].items())
+            _, token_id = zip(*index)
+            token_hash_ids = vectorized_mapping(token_id)
             embeddings.append(SparseEmbedding(indices=token_hash_ids, values=bm25scores))
-
-            start = end
 
         return embeddings
 
@@ -363,7 +365,7 @@ class Bm25(SparseTextEmbeddingBase):
             token_id = self.compute_token_id(stemmed_token)
             map_counter_id_to_hash_id[current_id] = token_id
 
-        vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x))
+        vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x),otypes=np.int32)
 
         for query_id in bm25s_tokenized_docs.ids:
             token_ids = vectorized_mapping(np.array(query_id))
