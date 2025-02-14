@@ -158,10 +158,12 @@ class Bm25(SparseTextEmbeddingBase):
         if bm25s_stopwords is not None:
             self.stopwords = bm25s_infer_stopwords(bm25s_stopwords)
             self._local_files_only = True
+            self.language = None
         else:
             try:
                 self.stopwords = bm25s_infer_stopwords(language)
                 self._local_files_only = True
+                self.language = language
             except ValueError:
                 logger.info(f"Stopwords for language {language} could not be inferred from bm25s. We try fastembeds own lists of stopwords")    
                 if language not in supported_languages:
