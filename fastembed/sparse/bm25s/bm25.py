@@ -44,7 +44,7 @@ supported_bm25_models = [
         },
         "model_file": "mock.file",  # bm25 does not require a model, so we just use a mock
         "additional_files": [f"{lang}.txt" for lang in supported_languages],
-        "requires_idf": True,
+        "requires_idf": False,  # As this is accounted for in the weights when embedding
     },
     {
         "model": "bm25s/lucene",
@@ -59,7 +59,7 @@ supported_bm25_models = [
         },
         "model_file": "mock.file",  # bm25 does not require a model, so we just use a mock
         "additional_files": [f"{lang}.txt" for lang in supported_languages],
-        "requires_idf": True,
+        "requires_idf": False,  # As this is accounted for in the weights when embedding
     },
     {
         "model": "bm25s/atire",
@@ -73,7 +73,7 @@ supported_bm25_models = [
         },
         "model_file": "mock.file",  # bm25 does not require a model, so we just use a mock
         "additional_files": [f"{lang}.txt" for lang in supported_languages],
-        "requires_idf": True,
+        "requires_idf": False,  # As this is accounted for in the weights when embedding
     },
     {
         "model": "bm25s/bm25l",
@@ -343,7 +343,7 @@ class Bm25(SparseTextEmbeddingBase):
             index, bm25scores = zip(*sparse_array[[doc_id], :].items())
             _, token_id = zip(*index)
             token_hash_ids = vectorized_mapping(token_id)
-            embeddings.append(SparseEmbedding(indices=token_hash_ids, values=bm25scores))
+            embeddings.append(SparseEmbedding(indices=token_hash_ids, values=np.array(bm25scores)))
 
         return embeddings
 
@@ -367,7 +367,7 @@ class Bm25(SparseTextEmbeddingBase):
             token_id = self.compute_token_id(stemmed_token)
             map_counter_id_to_hash_id[current_id] = token_id
 
-        vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x),otypes=np.int32)
+        vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x),otypes=(np.int32,))
 
         for query_id in bm25s_tokenized_docs.ids:
             token_ids = vectorized_mapping(np.array(query_id))
