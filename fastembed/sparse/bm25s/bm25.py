@@ -323,6 +323,8 @@ class Bm25(SparseTextEmbeddingBase):
         self,
         documents: list[str],
     ) -> list[SparseEmbedding]:
+        logger.debug(
+            f"Fastembeds implementation of {self.model_name} is embedding a list of {len(documents)} documents.")
         bm25s_tokenized_docs = self.tokenizer.tokenize(documents, update_vocab=True, return_as="tuple")
         # Compute the BM25 scores
         self.bm25s_engine.index(bm25s_tokenized_docs)
