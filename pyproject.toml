@@ -31,7 +31,7 @@ loguru = "^0.7.2"
 pillow = ">=10.3.0,<12.0.0"
 mmh3 = "^4.1.0"
 py-rust-stemmers = "^0.1.0"
-bm25s = ">=0.2.7"
+bm25s = ">=0.2.8"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.4.2"
