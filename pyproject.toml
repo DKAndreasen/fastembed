@@ -1,14 +1,14 @@
 [tool.poetry]
-name = "fastembed"
-version = "0.5.1"
-description = "Fast, light, accurate library built for retrieval embedding generation"
-authors = ["Qdrant Team <info@qdrant.tech>", "NirantK <nirant.bits@gmail.com>"]
+name = "ITK-bm25s-extended-fastembed"
+version = "0.1.0"
+description = "Fork from fastembed extended with BM25s for sparse embeddings. From fastembed: Fast, light, accurate library built for retrieval embedding generation"
+authors = ["Daniel Andreasen <akda@aarhus.dk>"]
 license = "Apache License"
 readme = "README.md"
 packages = [{include = "fastembed"}]
-homepage = "https://github.com/qdrant/fastembed"
-repository = "https://github.com/qdrant/fastembed"
-keywords = ["vector", "embedding", "neural", "search", "qdrant", "sentence-transformers"]
+homepage = "https://github.com/DKAndreasen/fastembed"
+repository = "https://github.com/DKAndreasen/fastembed"
+keywords = ["vector", "embedding", "neural", "search", "qdrant", "sentence-transformers", "bm25s"]
 
 [tool.poetry.dependencies]
 python = ">=3.9.0"
