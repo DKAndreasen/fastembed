@@ -6,9 +6,12 @@ from fastembed.sparse import SparseEmbedding, SparseTextEmbedding
 from fastembed.text import TextEmbedding
 
 try:
-    version = importlib.metadata.version("fastembed")
+    try:
+        version = importlib.metadata.version("fastembed")
+    except importlib.metadata.PackageNotFoundError as _:
+        version = importlib.metadata.version("fastembed-gpu")
 except importlib.metadata.PackageNotFoundError as _:
-    version = importlib.metadata.version("fastembed-gpu")
+    version = importlib.metadata.version("ITK-bm25s-extended-fastembed")
 
 __version__ = version
 __all__ = [
