@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ITK-bm25s-extended-fastembed"
-version = "0.1.1"
+version = "0.1.2"
 description = "Fork from fastembed extended with BM25s for sparse embeddings. From fastembed: Fast, light, accurate library built for retrieval embedding generation"
 authors = ["Daniel Andreasen <akda@aarhus.dk>"]
 license = "Apache License"

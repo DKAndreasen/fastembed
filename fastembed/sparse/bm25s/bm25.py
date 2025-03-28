@@ -372,7 +372,7 @@ class Bm25(SparseTextEmbeddingBase):
         vectorized_mapping = np.vectorize(lambda x: map_counter_id_to_hash_id.get(x, x),otypes=(np.int32,))
 
         for query_id in bm25s_tokenized_docs.ids:
-            token_ids = vectorized_mapping(np.array(query_id))
+            token_ids = vectorized_mapping(np.array(list(set(query_id))))
             psedo_score = np.ones_like(token_ids)
             yield SparseEmbedding(indices=token_ids, values=psedo_score)
 
